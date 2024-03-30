@@ -183,7 +183,7 @@ for (jj in seq_along(datasets)) {
         transmute(
           Endpoint=endpoints[jj], 
           surgery=kk, 
-          time=case_when(ll=="n_inhospital_30d"~"Inhospital/30 days", 
+          time=case_when(ll=="n_inhospital_30d"~"In-hospital", 
                          ll=="n_1y"~"1 year", 
                          ll=="n_5y"~"5 years", 
                          TRUE~"10 years"),
@@ -524,8 +524,8 @@ for (cc in seq_along(forest)) {
       	spacing           = spacing,
       	pointGroupsFactor = 0.9,
       	verbose           = FALSE,
-      	# boxsizeoverride   = FALSE,
-      	boxparm.stderr    = 2)
+      	boxsizeoverride   = TRUE,
+      	boxparm.stderr    = 1)
 
 # add titles above forest (may be left empty, change labels="" to what you will)
 
@@ -709,8 +709,8 @@ for (cc in seq_along(forest)) {
       	spacing           = spacing,
       	pointGroupsFactor = 0.9,
       	verbose           = FALSE,
-      	# boxsizeoverride   = FALSE,
-      	boxparm.stderr    = 2)
+      	boxsizeoverride   = TRUE,
+      	boxparm.stderr    = 1)
 
 # add titles above forest (may be left empty, change labels="" to what you will)
 
@@ -767,7 +767,7 @@ closeFile(type)
 
 # Subgroup --
 
-```{r forestplot, fig.height = 11, fig.width = 11}
+```{r subgroup}
 
 # Import and clean variables 
 baseline <- read_excel("Baseline data revised.xlsx") %>%
@@ -784,13 +784,19 @@ baseline <- read_excel("Baseline data revised.xlsx") %>%
 ## Categorise variables for subgroup analysis
 baseline <- mutate(
     baseline, 
-    age_subgroup=case_when(median_age_y<5~"<5", TRUE~"5+"), 
-    pm_subgroup=case_when(
-      pm<20~"Less than 20", 
-      pm>20~"20+", 
-      TRUE~NA_character_),  
-    moderate_tr_subgroup=case_when(moderate_tr<20~"Less than 20", moderate_tr>20~"20+", TRUE~NA_character_), 
-    pab_subgroup=case_when(preoperative_pab<30~"Less than 30", preoperative_pab>30~"30+", TRUE~NA_character_)) %>% 
+    age_subgroup=factor(case_when(median_age_y<5~"<5", TRUE~"≥5")), 
+    pm_subgroup=factor(case_when(
+      pm<20~"<20", 
+      pm>=20~"≥20", 
+      TRUE~NA_character_)),  
+    moderate_tr_subgroup=factor(case_when(
+      moderate_tr<20~"<20", 
+      moderate_tr>=20~"≥20", 
+      TRUE~NA_character_)), 
+    pab_subgroup=factor(case_when(
+      preoperative_pab<30~"<30", 
+      preoperative_pab>=30~"≥30", 
+      TRUE~NA_character_))) %>% 
   select(author_year, surgery,  contains("_subgroup"))
 
 # Join baseline data to main dataset  
@@ -805,8 +811,16 @@ data_subgroup <- map(
 subgroup_var_names <- select(baseline, contains("_subgroup")) %>% names(.) %>% sort(.)
 
 subgroup_var_labs <- list(
-  "Anatomic"=c("Median age (years)", "Moderate TR (%)", "Preoperative PAB (%)", "Pacemaker use(%)", "UNSD region"), 
-  "Physiologic"=c("Median age (years)", "Moderate TR (%)", "Pacemaker use(%)", "UNSD region") 
+  "Anatomic"=c("Median age (years)", 
+               "Moderate or severe TR (%)", 
+               "Preoperative PAB (%)", 
+               "Pacemaker (%)", 
+               "UNSD region"), 
+  
+  "Physiologic"=c("Median age (years)", 
+                  "Moderate or severe TR (%)", 
+                  "Pacemaker (%)", 
+                  "UNSD region") 
 )
 
 subgroup_list <- list(
@@ -894,10 +908,10 @@ for(jj in seq_along(datasets)){
   for(kk in names(subgroup_var_labs)){
     for(ll in time_points){
       
-      png(paste0("Subgroup/", Endpoints[jj], "_", kk, "_", ll, ".png"), 
+      png(paste0("Subgroup/", Endpoints[jj], "_", kk, "_", ll,"_SUMMARIZED.png"), 
              units     = "in", 
              width     = 9, 
-             height    = 5, 
+             height    = 6, 
              pointsize = 11,  
              res       = 300)  
       
@@ -951,7 +965,7 @@ x.pval <- list(
 
 Panel.titles <- list(
   "top"=list(
-    "n_inhospital_30d"="Anatomic\n\nInhospital/30 days", 
+    "n_inhospital_30d"="Anatomic\n\nIn-hospital", 
     "n_1y"="\n\n1 year",
     "n_5y"="\n\n5 year",
     "n_10y"="\n\n10 year"), 
@@ -1001,7 +1015,7 @@ Surgery <- c("DSO", "Rastelli")
 
 Panel.titles <- list(
   "DSO"=list(
-    "n_inhospital_30d"="DSO\n\nInhospital/30 days", 
+    "n_inhospital_30d"="DSO\n\nIn-hospital", 
     "n_1y"="\n\n1 year",
     "n_5y"="\n\n5 year",
     "n_10y"="\n\n10 year"), 
@@ -1067,7 +1081,7 @@ for (jj in seq_along(datasets)) {
       # Remove missing data
       data_temp <- 
         datasets[[jj]] %>% 
-        filter(surgery==kk, sample<20) %>% 
+        filter(surgery==kk, sample>=20) %>% 
         select(all_of(c("author_year", "surgery", "sample", ll))) %>% 
         rename(n=all_of(ll)) %>% #Rename the event column to ease manipulation
         na.omit(.)
@@ -1101,7 +1115,7 @@ for (jj in seq_along(datasets)) {
         transmute(
           Endpoint=endpoints[jj], 
           surgery=kk, 
-          time=case_when(ll=="n_inhospital_30d"~"Inhospital/30 days", 
+          time=case_when(ll=="n_inhospital_30d"~"In-hospital", 
                          ll=="n_1y"~"1 year", 
                          ll=="n_5y"~"5 years", 
                          TRUE~"10 years"),
@@ -1129,7 +1143,6 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ## Make forest plot 
-
 
 ### Anatomic versus physiologic 
 
@@ -1246,8 +1259,8 @@ for (cc in seq_along(forest)) {
       	ExponentiateDataOnPlot=FALSE,
       	xaxmin            = xaxmin,
       	xaxmax            = xaxmax,
-      	xlim              = c(-5, 65), 
-      	xticks            = seq(0, 60, 10),
+      	xlim              = c(-5, 45), 
+      	xticks            = seq(0, 40, 10),
         xticks.ticklength = 0.25,
       	xlab              = c("", "Incidence (%)")[cc],
       	NLabel            = FALSE,
@@ -1261,8 +1274,8 @@ for (cc in seq_along(forest)) {
       	spacing           = spacing,
       	pointGroupsFactor = 0.9,
       	verbose           = FALSE,
-      	# boxsizeoverride   = FALSE,
-      	boxparm.stderr    = 4)
+      	boxsizeoverride   = TRUE,
+      	boxparm.stderr    = 1)
 
 # add titles above forest (may be left empty, change labels="" to what you will)
 
@@ -1431,8 +1444,8 @@ for (cc in seq_along(forest)) {
       	ExponentiateDataOnPlot=FALSE,
       	xaxmin            = xaxmin,
       	xaxmax            = xaxmax,
-      	xlim              = c(-5, 65), 
-      	xticks            = seq(0, 60, 10),
+      	xlim              = c(-5, 45), 
+      	xticks            = seq(0, 40, 10),
         xticks.ticklength = 0.25,
       	xlab              = c("", "Incidence (%)")[cc],
       	NLabel            = FALSE,
@@ -1446,8 +1459,8 @@ for (cc in seq_along(forest)) {
       	spacing           = spacing,
       	pointGroupsFactor = 0.9,
       	verbose           = FALSE,
-      	# boxsizeoverride   = FALSE,
-      	boxparm.stderr    = 4)
+      	boxsizeoverride   = TRUE,
+      	boxparm.stderr    = 1)
 
 # add titles above forest (may be left empty, change labels="" to what you will)
 
